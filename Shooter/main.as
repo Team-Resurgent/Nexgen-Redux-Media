@@ -107,7 +107,12 @@ void InitWindowSize()
     windowSize = GetWindowSize();
 }
 
-dictionary Player;
+//************************************************************************************************ 
+// Table For Player
+//***************************************************************************
+
+Vec2F PlayerPos = Vec2F();
+float PlayerSpeed = 400;
 
 void Init()
 {
@@ -150,12 +155,12 @@ void Init()
     NodeManager::AssignNode(lighting, fog.GetID());
 
     SpriteNode@ sprite1 = NodeManager::CreateSprite();
-    sprite1.SetTexturePath("skin:assets\\images\\backgrounds\\bg.png");
+    sprite1.SetTexturePath("asset:images\\backgrounds\\bg.png");
     sprite1.SetUV(RectF(0, 0, 1, 1));
     sprite1.SetSize(SizeF(640, 480));
     NodeManager::AssignNode(sprite1, lighting.GetID());
     
-    PlayerImg.SetTexturePath("skin:\\assets\\images\\game\\plane.png");
+    PlayerImg.SetTexturePath("asset:images\\game\\plane.png");
     PlayerImg.SetUV(RectF(0, 0, 1, 1));
     PlayerImg.SetAnchor(Vec3F(64, 64, 0));
     PlayerImg.SetSize(SizeF(playerWidth, playerHeight));
@@ -163,34 +168,34 @@ void Init()
 	//PlayerImg.SetVisible(false);
     NodeManager::AssignNode(PlayerImg, lighting.GetID());
 	
-	BulletImg.SetTexturePath("skin:\\assets\\images\\game\\playerbullet.png");
+	BulletImg.SetTexturePath("asset:images\\game\\playerbullet.png");
     BulletImg.SetUV(RectF(0, 0, 1, 1));
     BulletImg.SetAnchor(Vec3F(0, 0, 0));
     BulletImg.SetPosition(Vec3F(74, 74, 0));
     BulletImg.SetSize(SizeF(bulletWidth, bulletHeight));
 	BulletImg.SetDepth(DepthOperationDisabled);
-		BulletImg.SetVisible(false);
+	BulletImg.SetVisible(false);
     NodeManager::AssignNode(BulletImg, lighting.GetID());
 	
-	EnemyBulletImg.SetTexturePath("skin:\\assets\\images\\game\\enemybullet.png");
+	EnemyBulletImg.SetTexturePath("asset:images\\game\\enemybullet.png");
     EnemyBulletImg.SetUV(RectF(0, 0, 1, 1));
     EnemyBulletImg.SetAnchor(Vec3F(64, 64, 0));
     EnemyBulletImg.SetPosition(Vec3F(74, 96, 0));
     EnemyBulletImg.SetSize(SizeF(bulletWidth, bulletHeight));
 	EnemyBulletImg.SetDepth(DepthOperationDisabled);
-		EnemyBulletImg.SetVisible(false);
+	EnemyBulletImg.SetVisible(false);
     NodeManager::AssignNode(EnemyBulletImg, lighting.GetID());
 	
-	EnemyImg.SetTexturePath("skin:\\assets\\images\\game\\enemy.png");
+	EnemyImg.SetTexturePath("asset:images\\game\\enemy.png");
     EnemyImg.SetUV(RectF(0, 0, 1, 1));
     EnemyImg.SetAnchor(Vec3F(64, 64, 0));
     EnemyImg.SetPosition(Vec3F(200, 106, 0));
     EnemyImg.SetSize(SizeF(enemyWidth, enemyHeight));
 	EnemyImg.SetDepth(DepthOperationDisabled);
-		EnemyImg.SetVisible(false);
+	EnemyImg.SetVisible(false);
     NodeManager::AssignNode(EnemyImg, lighting.GetID());
 	
-	BossImg.SetTexturePath("skin:\\assets\\images\\game\\boss.png");
+	BossImg.SetTexturePath("asset:images\\game\\boss.png");
     BossImg.SetUV(RectF(0, 0, 1, 1));
     BossImg.SetAnchor(Vec3F(64, 64, 0));
     BossImg.SetSize(SizeF(bossWidth, bossWidth));
@@ -235,23 +240,13 @@ void Init()
 	
 	InitWindowSize();
 
-
-//************************************************************************************************ 
-// Table For Player
-//***************************************************************************
-    Player = {
-        {"x", windowSize.width / 2},
-        {"y", windowSize.height - playerHeight},
-        {"speed", 400}
-    };
-
 //--------------------------------------------------------------------------------------------------		
 	
     // initialize default for fps
     previousTime = GetMillisecondsNow();
-	
-        PlayerImg.SetPosition(Vec3F(float(Player["x"])-playerWidth/2, float(Player["y"]), 0));
-		Player["x"] = (float(Player["x"])-playerWidth/2);
+        
+    PlayerImg.SetPosition(Vec3F(PlayerPos.x - playerWidth / 2, PlayerPos.y, 0));
+    PlayerPos.x -= playerWidth / 2;
 
 }
 
@@ -290,50 +285,46 @@ void Render(double dt)
 
 if (joystickButtonStates.buttonDpadLeft == JoystickButtonStatePressed) {
     // Move left
-    float xPosition = float(Player["x"]);
+    float xPosition = PlayerPos.x;
     if (xPosition > 0) {
-        float newXPosition = float(xPosition - (float(Player["speed"]) * dt));
-        Player["x"] = newXPosition;
-        PlayerImg.SetPosition(Vec3F(newXPosition, float(Player["y"]), 0));
+        PlayerPos.x = float(xPosition - (PlayerSpeed * dt));
+        PlayerImg.SetPosition(Vec3F(PlayerPos.x, PlayerPos.y, 0));
     }
     else {
-        Player["x"] = 0;
+        PlayerPos.x = 0;
     }
 }
 if (joystickButtonStates.buttonDpadRight == JoystickButtonStatePressed) {
     // Move right
-    float xPosition = float(Player["x"]);
+    float xPosition = PlayerPos.x;
     if (xPosition < windowSize.width - bossWidth) {
-        float newXPosition = float(xPosition + (float(Player["speed"]) * dt));
-        Player["x"] = newXPosition;
-        PlayerImg.SetPosition(Vec3F(newXPosition, float(Player["y"]), 0));
+        PlayerPos.x = float(xPosition + (PlayerSpeed * dt));
+        PlayerImg.SetPosition(Vec3F(PlayerPos.x, PlayerPos.y, 0));
     }
     else {
-        Player["x"] = windowSize.width - bossWidth;
+        PlayerPos.x = windowSize.width - bossWidth;
     }
 }
 if (joystickButtonStates.buttonDpadUp == JoystickButtonStatePressed) {
     // Move up
-    float yPosition = float(Player["y"]);
+    float yPosition = PlayerPos.y;
     if (yPosition < windowSize.height - bossHeight) {
-        float newYPosition = float(yPosition + (float(Player["speed"]) * dt));
-        Player["y"] = newYPosition;
-        PlayerImg.SetPosition(Vec3F(float(Player["x"]), newYPosition, 0));
+        PlayerPos.y = float(yPosition + (PlayerSpeed * dt));
+        PlayerImg.SetPosition(Vec3F(PlayerPos.x, PlayerPos.y, 0));
     }
     else {
-        Player["y"] = windowSize.height - bossHeight;
+        PlayerPos.y = windowSize.height - bossHeight;
     }
 }
 if (joystickButtonStates.buttonDpadDown == JoystickButtonStatePressed) {
     // Move down
-    float yPosition = float(Player["y"]);
+    float yPosition = PlayerPos.y;
     if (yPosition > 0) {
-        float newYPosition = float(yPosition - (float(Player["speed"]) * dt));
-        Player["y"] = newYPosition;
-        PlayerImg.SetPosition(Vec3F(float(Player["x"]), newYPosition, 0));
+        PlayerPos.y = float(yPosition - (PlayerSpeed * dt));
+        PlayerImg.SetPosition(Vec3F(PlayerPos.x, PlayerPos.y, 0));
     }
     else {
-        Player["y"] = 0;
+        PlayerPos.y = 0;
     }
 }
 
