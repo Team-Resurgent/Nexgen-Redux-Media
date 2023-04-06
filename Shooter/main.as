@@ -1,4 +1,7 @@
 OrthoCameraNode@  orthoCamera = NodeManager::CreateOrthoCamera();
+FogNode@ fog = NodeManager::CreateFog();
+LightingNode@ lighting = NodeManager::CreateLighting();
+
 TextNode@ textFPS = NodeManager::CreateText();
 TextNode@ textMem = NodeManager::CreateText();
 
@@ -76,6 +79,7 @@ void OnJoystickConnect(uint joystickID, uint connected)
 
 uint64 currentTime;
 uint64 previousTime;
+
 uint frameCount;
 float spriteRotate = 0;
 
@@ -109,16 +113,26 @@ void InitWindowSize()
 
 //************************************************************************************************ 
 // Table For Player
-//***************************************************************************
+//************************************************************************************************
 
 Vec2F PlayerPos = Vec2F();
 float PlayerSpeed = 400;
+uint64 PlayerLastBulletFiredTime = 0;
 
+//************************************************************************************************ 
+// Table For Boss
+//************************************************************************************************
+
+Vec2F BossEnemyPos = Vec2F();
+float BossEnemySpeed = 200;
+uint64 BossEnemyLastBulletFiredTime = 0;
+
+
+//************************************************************************************************ 
+// Main Function: Initialise all main assets
+//************************************************************************************************
 void Init()
 {
-
-    
-
     FontManager::LoadFont("skin:asset\\fonts\\freesans.sfn");
 
     uint sceneID = SceneManager::CreateScene(true);
@@ -137,7 +151,6 @@ void Init()
 
     SceneManager::AssignNode(orthoCamera, sceneID);
 
-    FogNode@ fog = NodeManager::CreateFog();
     fog.SetFog(FogOperationDisabled);
     fog.SetFogColor(Color3F(0, 0.6, 0));
     fog.SetFogStart(-1024);
@@ -145,7 +158,6 @@ void Init()
     fog.SetFogDensity(0.001);
     NodeManager::AssignNode(fog, orthoCamera.GetID());
     
-    LightingNode@ lighting = NodeManager::CreateLighting();
     lighting.SetLights(LightsOperationDisabled);
     lighting.SetAmbientLight(Color3F(0, 0, 0));
     lighting.SetLight1(LightOperationDisabled);
@@ -207,9 +219,9 @@ void Init()
 
     textFPS.SetFontName("FreeSans");
     textFPS.SetFontStyle(0);
-    textFPS.SetFontSize(60);
+    textFPS.SetFontSize(20);
     //TODO: SetFontStyle(FontStyleBold | FontStyleItalic | FontStyleUnderline);
-    textFPS.SetPosition(Vec3F(75, 360, 20));
+    textFPS.SetPosition(Vec3F(5, 455, 20));
     NodeManager::AssignNode(textFPS, lighting.GetID());
     
     textMem.SetFontName("FreeSans");
@@ -253,18 +265,17 @@ void Init()
 void Render(double dt)
 {
 
-
 //************************************************************************************************ 
 // Fps & Mem
 //************************************************************************************************ 
     currentTime = GetMillisecondsNow();
     double durationFPS = GetDurationSeconds(previousTime, currentTime);
 
-    if (durationFPS > 2.0)
+    if (durationFPS > 0.1)
     {
         double fps = CalculateFramesPerSecond(frameCount, durationFPS);
-        //textFPS.SetText("fps = " + fps);
-        DebugPrint(LogLevelInfo, "fps = " + fps);
+        textFPS.SetText("fps = " + fps);
+        //DebugPrint(LogLevelInfo, "fps = " + fps);
         frameCount = 0;
         previousTime = currentTime;
     }
@@ -278,12 +289,13 @@ void Render(double dt)
 
 
 //************************************************************************************************ 
-// Controller Settings For Airplane Movement
+// Controller Settings For Airplane Movement + Firing Bullets
 //************************************************************************************************ 
 
+JoystickAxisStates joystickAxisStates = GetJoystickAxisStates(0);
 JoystickButtonStates joystickButtonStates = GetJoystickButtonStates(0);
 
-if (joystickButtonStates.buttonDpadLeft == JoystickButtonStatePressed) {
+if (joystickButtonStates.buttonDpadLeft == JoystickButtonStatePressed || joystickAxisStates.axisLeftX < -0.2) {
     // Move left
     if (PlayerPos.x > 0) {
         PlayerPos.x = float(PlayerPos.x - (PlayerSpeed * dt));
@@ -293,7 +305,7 @@ if (joystickButtonStates.buttonDpadLeft == JoystickButtonStatePressed) {
         PlayerPos.x = 0;
     }
 }
-if (joystickButtonStates.buttonDpadRight == JoystickButtonStatePressed) {
+if (joystickButtonStates.buttonDpadRight == JoystickButtonStatePressed || joystickAxisStates.axisLeftX > 0.2) {
     // Move right
     if (PlayerPos.x < windowSize.width - bossWidth) {
         PlayerPos.x = float(PlayerPos.x + (PlayerSpeed * dt));
@@ -303,7 +315,7 @@ if (joystickButtonStates.buttonDpadRight == JoystickButtonStatePressed) {
         PlayerPos.x = windowSize.width - bossWidth;
     }
 }
-if (joystickButtonStates.buttonDpadUp == JoystickButtonStatePressed) {
+if (joystickButtonStates.buttonDpadUp == JoystickButtonStatePressed || joystickAxisStates.axisLeftY < -0.2) {
     // Move up
     if ( PlayerPos.y < windowSize.height - bossHeight) {
         PlayerPos.y = float(PlayerPos.y + (PlayerSpeed * dt));
@@ -313,7 +325,7 @@ if (joystickButtonStates.buttonDpadUp == JoystickButtonStatePressed) {
         PlayerPos.y = windowSize.height - bossHeight;
     }
 }
-if (joystickButtonStates.buttonDpadDown == JoystickButtonStatePressed) {
+if (joystickButtonStates.buttonDpadDown == JoystickButtonStatePressed || joystickAxisStates.axisLeftY > 0.2) {
     // Move down
     if (PlayerPos.y > 0) {
         PlayerPos.y = float(PlayerPos.y - (PlayerSpeed * dt));
@@ -323,9 +335,62 @@ if (joystickButtonStates.buttonDpadDown == JoystickButtonStatePressed) {
         PlayerPos.y = 0;
     }
 }
+if (joystickButtonStates.buttonA == JoystickButtonStatePressed || joystickAxisStates.axisRightTrigger > 0.1)
+{
+	currentTime = GetMillisecondsNow();
+    double durationPlayerBulletLastFiredToNow = GetDurationSeconds(PlayerLastBulletFiredTime, currentTime);
+	if (durationPlayerBulletLastFiredToNow > 0.5)
+	{	
+		FirePlayerBullet();
+		PlayerLastBulletFiredTime = currentTime;
+	}
+	
+}
 
 //-------------------------------------------------------------------------------------------------- 
 
 
     frameCount++;
 }
+
+//************************************************************************************************ 
+// Define Bullet Lists
+//************************************************************************************************ 
+
+
+
+//************************************************************************************************ 
+// Create a Bullet for Player and Play Sound
+//************************************************************************************************ 
+void FirePlayerBullet()
+{	
+	SpriteNode@ BulletImg2 = NodeManager::CreateSprite();
+	
+	BulletImg2.SetTexturePath("asset:images\\game\\playerbullet.png");
+	BulletImg2.SetUV(RectF(0, 0, 1, 1));
+	BulletImg2.SetAnchor(Vec3F(0, 0, 0));
+	BulletImg2.SetPosition(Vec3F(PlayerPos.x + 50, PlayerPos.y - 20, 0));
+	BulletImg2.SetSize(SizeF(bulletWidth, bulletHeight));
+	BulletImg2.SetDepth(DepthOperationDisabled);
+	//BulletImg2.SetVisible(true);
+	
+	NodeManager::AssignNode(BulletImg2, lighting.GetID());
+	
+	//Vec3F bulletPosition = BulletImg2.GetPosition();
+	//currentTime = GetMillisecondsNow();
+	//uint64 LastUpdatedBulletTime = 0;
+    //double SecondsSinceBulletUpdated = GetDurationSeconds(LastUpdatedBulletTime, currentTime);
+	if (SecondsSinceBulletUpdated > 1)
+	{
+		//if(BulletImg2.GetPosition().y > 2)
+		{
+			//BulletImg2.SetPosition(Vec3F(bulletPosition.x, bulletPosition.y - 2, 0));
+		}
+		//else
+		{
+			//NodeManager::DeleteNode(nodeID);
+		}
+	}
+
+}
+
