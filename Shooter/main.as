@@ -119,7 +119,7 @@ void Init()
 
     
 
-    FontManager::LoadFont("skin:assets\\fonts\\freesans.sfn");
+    FontManager::LoadFont("skin:asset\\fonts\\freesans.sfn");
 
     uint sceneID = SceneManager::CreateScene(true);
     SceneManager::SetCurrentScene(sceneID);
@@ -244,10 +244,10 @@ void Init()
 	
     // initialize default for fps
     previousTime = GetMillisecondsNow();
-        
-    PlayerImg.SetPosition(Vec3F(PlayerPos.x - playerWidth / 2, PlayerPos.y, 0));
-    PlayerPos.x -= playerWidth / 2;
-
+	
+	PlayerPos.x = windowSize.width / 2 - playerWidth /2;
+	PlayerPos.y = windowSize.height - playerHeight;
+    PlayerImg.SetPosition(Vec3F(PlayerPos.x, PlayerPos.y, 0));
 }
 
 void Render(double dt)
@@ -281,13 +281,12 @@ void Render(double dt)
 // Controller Settings For Airplane Movement
 //************************************************************************************************ 
 
-    JoystickButtonStates joystickButtonStates = GetJoystickButtonStates(0);
+JoystickButtonStates joystickButtonStates = GetJoystickButtonStates(0);
 
 if (joystickButtonStates.buttonDpadLeft == JoystickButtonStatePressed) {
     // Move left
-    float xPosition = PlayerPos.x;
-    if (xPosition > 0) {
-        PlayerPos.x = float(xPosition - (PlayerSpeed * dt));
+    if (PlayerPos.x > 0) {
+        PlayerPos.x = float(PlayerPos.x - (PlayerSpeed * dt));
         PlayerImg.SetPosition(Vec3F(PlayerPos.x, PlayerPos.y, 0));
     }
     else {
@@ -296,9 +295,8 @@ if (joystickButtonStates.buttonDpadLeft == JoystickButtonStatePressed) {
 }
 if (joystickButtonStates.buttonDpadRight == JoystickButtonStatePressed) {
     // Move right
-    float xPosition = PlayerPos.x;
-    if (xPosition < windowSize.width - bossWidth) {
-        PlayerPos.x = float(xPosition + (PlayerSpeed * dt));
+    if (PlayerPos.x < windowSize.width - bossWidth) {
+        PlayerPos.x = float(PlayerPos.x + (PlayerSpeed * dt));
         PlayerImg.SetPosition(Vec3F(PlayerPos.x, PlayerPos.y, 0));
     }
     else {
@@ -307,9 +305,8 @@ if (joystickButtonStates.buttonDpadRight == JoystickButtonStatePressed) {
 }
 if (joystickButtonStates.buttonDpadUp == JoystickButtonStatePressed) {
     // Move up
-    float yPosition = PlayerPos.y;
-    if (yPosition < windowSize.height - bossHeight) {
-        PlayerPos.y = float(yPosition + (PlayerSpeed * dt));
+    if ( PlayerPos.y < windowSize.height - bossHeight) {
+        PlayerPos.y = float(PlayerPos.y + (PlayerSpeed * dt));
         PlayerImg.SetPosition(Vec3F(PlayerPos.x, PlayerPos.y, 0));
     }
     else {
@@ -318,9 +315,8 @@ if (joystickButtonStates.buttonDpadUp == JoystickButtonStatePressed) {
 }
 if (joystickButtonStates.buttonDpadDown == JoystickButtonStatePressed) {
     // Move down
-    float yPosition = PlayerPos.y;
-    if (yPosition > 0) {
-        PlayerPos.y = float(yPosition - (PlayerSpeed * dt));
+    if (PlayerPos.y > 0) {
+        PlayerPos.y = float(PlayerPos.y - (PlayerSpeed * dt));
         PlayerImg.SetPosition(Vec3F(PlayerPos.x, PlayerPos.y, 0));
     }
     else {
